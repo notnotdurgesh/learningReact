@@ -1,0 +1,171 @@
+/* basic of react(what does react do? */
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reconciler Assignment</title>
+</head>
+<body>
+  <!-- Title and description -->
+  <h1>Reconciler Assignment</h1>
+  <p>
+    This application fetches data from "https://sum-server.100xdevs.com/todos"
+    and tracks the differences between the current state and the last state,
+    updating values accordingly.
+  </p>
+
+  <!-- Button to fetch todos -->
+  <button onclick="fetchTodos()">Click to get todos</button>
+  <br /><br />
+
+  <!-- Container to display todos -->
+  <div id="todos"></div>
+
+  <!-- Containers for current and last states of todos -->
+  <div id="current-state">
+    <h3>Current state</h3>
+    <ul id="current-list"></ul>
+  </div>
+  <div id="last-state">
+    <h3>Old state</h3>
+    <ul id="last-list"></ul>
+  </div>
+
+  <!-- Display count of changes in DOM -->
+  <h3>Count of changes in DOM</h3>
+  <div id="changes"></div>
+
+  <script>
+    // Global variables
+    let globalId = 1; // Not used in the provided code
+    let todoState = []; // Array to hold current todos
+    let oldTodoState = []; // Array to hold previous state of todos
+
+    // Function to mark a todo as done
+    function markAsDone(id) {
+      const todo = oldTodoState.find(todo => todo.id === id);
+      if (todo) {
+        todo.completed = true;
+        const element = document.getElementById(id);
+        element.children[2].innerText = "Done !";
+      }
+    }
+
+    // Function to add a new todo
+    function addNewTodo(todo) {
+      const todosDiv = document.getElementById("todos");
+      const todoDiv = document.createElement("div");
+      todoDiv.setAttribute("id", todo.id);
+
+      const titleDiv = document.createElement("div");
+      titleDiv.innerText = todo.title;
+
+      const descriptionDiv = document.createElement("div");
+      descriptionDiv.innerHTML = todo.description;
+
+      const button = document.createElement("button");
+      button.innerText = "Mark as done";
+      button.onclick = () => markAsDone(todo.id);
+
+      todoDiv.appendChild(titleDiv);
+      todoDiv.appendChild(descriptionDiv);
+      todoDiv.appendChild(button);
+      
+      todosDiv.appendChild(todoDiv);
+    }
+
+    // Function to remove a todo
+    function removeTodo(id) {
+      const element = document.getElementById(id);
+      element.parentNode.removeChild(element);
+    }
+
+    // Function to update the todo list
+    function updateTodoList(newTodos) {
+      // Display current and last state of todos
+      displayTodoList("current-list", newTodos);
+      displayTodoList("last-list", oldTodoState);
+
+      // Arrays to track changes in todos
+      const added = [];
+      const deleted = [];
+      const updated = [];
+      const noChange = [];
+
+      // Iterate through new todos
+      newTodos.forEach(newTodo => {
+        // Check if new todo already exists in old state
+        const index = oldTodoState.findIndex(oldTodo => oldTodo.id === newTodo.id);
+        if (index === -1) {
+          // If not, it's added
+          added.push(newTodo);
+          addNewTodo(newTodo);
+        } else {
+          // If exists, check for changes
+          const oldTodo = oldTodoState[index];
+          if (oldTodo.title !== newTodo.title || oldTodo.description !== newTodo.description || oldTodo.completed !== newTodo.completed) {
+            // If changed, update
+            updated.push(newTodo);
+            updateTodoElement(oldTodo.id, newTodo);
+          } else {
+            // If no change, track it
+            noChange.push(newTodo);
+          }
+          // Remove from old state
+          oldTodoState.splice(index, 1);
+        }
+      });
+
+      // Remove remaining todos from old state
+      oldTodoState.forEach(oldTodo => {
+        deleted.push(oldTodo);
+        removeTodo(oldTodo.id);
+      });
+
+      // Update old state
+      oldTodoState = newTodos;
+
+      // Display count of changes
+      const changesDiv = document.getElementById("changes");
+      changesDiv.innerHTML = `
+        ${updated.length} Updated Count <br/>
+        ${deleted.length} Deleted Count <br/>
+        ${added.length} Added Count <br/>
+        ${noChange.length} No Changes <br/>
+      `;
+    }
+
+    // Function to fetch todos
+    async function fetchTodos() {
+      const response = await fetch("https://sum-server.100xdevs.com/todos");
+      const data = await response.json();
+      todoState = data.todos;
+      updateTodoList(todoState);
+    }
+
+    // Function to display a list of todos
+    function displayTodoList(listId, todos) {
+      const listElement = document.getElementById(listId);
+      listElement.innerHTML = "";
+      todos.forEach(todo => {
+        const listItem = document.createElement("li");
+        listItem.innerHTML = `
+          <strong>ID:</strong> ${todo.id} <br/>
+          <strong>Title:</strong> ${todo.title} <br/>
+          <strong>Description:</strong> ${todo.description} <br/>
+          <strong>Status:</strong> ${todo.completed ? "Completed" : "Not Completed"} <br/>
+          <br/>
+        `;
+        listElement.appendChild(listItem);
+      });
+    }
+
+    // Function to update a todo element
+    function updateTodoElement(id, todo) {
+      const todoDiv = document.getElementById(id);
+      todoDiv.children[0].innerText = todo.title;
+      todoDiv.children[1].innerHTML = todo.description;
+      todoDiv.children[2].innerText = todo.completed ? "Mark as done" : "Done";
+    }
+  </script>
+</body>
+</html>
